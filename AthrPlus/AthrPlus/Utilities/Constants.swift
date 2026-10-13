@@ -9,6 +9,13 @@ public enum Constants {
         public static let verifyOtpURL = "https://cerberus.ather.io/auth/v2/verify-login-otp"
     }
 
+    public enum HTTPHeaders {
+        public static let source = "ATHER_APP/15.2.0"
+        public static let platform = "iOS"
+        public static let platformVersion = "17.0"
+        public static let userAgent = "Ather/15.2.0 (iPhone; iOS 17.0)"
+    }
+
     public enum Keychain {
         public static let serviceName = "com.athrplus.ios.keychain"
         public static let accessTokenKey = "athr_access_token"

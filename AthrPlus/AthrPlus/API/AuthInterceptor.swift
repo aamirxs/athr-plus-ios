@@ -83,6 +83,11 @@ public final class AuthInterceptor: @unchecked Sendable {
         refreshRequest.httpMethod = "POST"
         refreshRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         refreshRequest.setValue("application/json", forHTTPHeaderField: "Accept")
+        refreshRequest.setValue("UTF-8", forHTTPHeaderField: "Accept-Charset")
+        refreshRequest.setValue(Constants.HTTPHeaders.source, forHTTPHeaderField: "Source")
+        refreshRequest.setValue(Constants.HTTPHeaders.platform, forHTTPHeaderField: "X-Platform")
+        refreshRequest.setValue(Constants.HTTPHeaders.platformVersion, forHTTPHeaderField: "X-Platform-Version")
+        refreshRequest.setValue(Constants.HTTPHeaders.userAgent, forHTTPHeaderField: "User-Agent")
 
         let body = ["refresh_token": refreshToken]
         refreshRequest.httpBody = try? JSONSerialization.data(withJSONObject: body)

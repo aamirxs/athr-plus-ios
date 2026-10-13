@@ -31,7 +31,17 @@ public actor AtherAPI {
         self.encoder = enc
     }
 
-    // MARK: - Private Request Helper
+    // MARK: - Private Header & Request Helper
+
+    private func applyAtherHeaders(to request: inout URLRequest) {
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("UTF-8", forHTTPHeaderField: "Accept-Charset")
+        request.setValue(Constants.HTTPHeaders.source, forHTTPHeaderField: "Source")
+        request.setValue(Constants.HTTPHeaders.platform, forHTTPHeaderField: "X-Platform")
+        request.setValue(Constants.HTTPHeaders.platformVersion, forHTTPHeaderField: "X-Platform-Version")
+        request.setValue(Constants.HTTPHeaders.userAgent, forHTTPHeaderField: "User-Agent")
+    }
 
     private func request<T: Decodable>(
         _ endpoint: String,
@@ -53,12 +63,7 @@ public actor AtherAPI {
 
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = method
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
-        urlRequest.setValue("UTF-8", forHTTPHeaderField: "Accept-Charset")
-        urlRequest.setValue("ATHER_APP/13.2.0", forHTTPHeaderField: "Source")
-        urlRequest.setValue("Android", forHTTPHeaderField: "X-Platform")
-        urlRequest.setValue("ktor-client", forHTTPHeaderField: "User-Agent")
+        applyAtherHeaders(to: &urlRequest)
         urlRequest.timeoutInterval = Constants.API.defaultTimeout
 
         if let body = body {
@@ -133,12 +138,7 @@ public actor AtherAPI {
         }
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
-        urlRequest.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
-        urlRequest.setValue("UTF-8", forHTTPHeaderField: "Accept-Charset")
-        urlRequest.setValue("ATHER_APP/13.2.0", forHTTPHeaderField: "Source")
-        urlRequest.setValue("Android", forHTTPHeaderField: "X-Platform")
-        urlRequest.setValue("ktor-client", forHTTPHeaderField: "User-Agent")
+        applyAtherHeaders(to: &urlRequest)
         urlRequest.timeoutInterval = Constants.API.defaultTimeout
         urlRequest.httpBody = try encoder.encode(requestBody)
 
@@ -198,10 +198,7 @@ public actor AtherAPI {
         }
         var meRequest = URLRequest(url: meUrl)
         meRequest.httpMethod = "GET"
-        meRequest.setValue("application/json", forHTTPHeaderField: "Accept")
-        meRequest.setValue("ATHER_APP/13.2.0", forHTTPHeaderField: "Source")
-        meRequest.setValue("Android", forHTTPHeaderField: "X-Platform")
-        meRequest.setValue("ktor-client", forHTTPHeaderField: "User-Agent")
+        applyAtherHeaders(to: &meRequest)
 
         if let (data, response) = try? await interceptor.execute(meRequest),
            (200...299).contains(response.statusCode),
@@ -232,10 +229,7 @@ public actor AtherAPI {
         }
         var fbRequest = URLRequest(url: fbUrl)
         fbRequest.httpMethod = "GET"
-        fbRequest.setValue("application/json", forHTTPHeaderField: "Accept")
-        fbRequest.setValue("ATHER_APP/13.2.0", forHTTPHeaderField: "Source")
-        fbRequest.setValue("Android", forHTTPHeaderField: "X-Platform")
-        fbRequest.setValue("ktor-client", forHTTPHeaderField: "User-Agent")
+        applyAtherHeaders(to: &fbRequest)
 
         let (fbData, fbResponse) = try await interceptor.execute(fbRequest)
         if (200...299).contains(fbResponse.statusCode),
@@ -262,10 +256,7 @@ public actor AtherAPI {
         }
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("ATHER_APP/13.2.0", forHTTPHeaderField: "Source")
-        request.setValue("Android", forHTTPHeaderField: "X-Platform")
-        request.setValue("ktor-client", forHTTPHeaderField: "User-Agent")
+        applyAtherHeaders(to: &request)
 
         let (data, response) = try await interceptor.execute(request)
         guard (200...299).contains(response.statusCode) else {
@@ -364,11 +355,7 @@ public actor AtherAPI {
         }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("ATHER_APP/13.2.0", forHTTPHeaderField: "Source")
-        request.setValue("Android", forHTTPHeaderField: "X-Platform")
-        request.setValue("ktor-client", forHTTPHeaderField: "User-Agent")
+        applyAtherHeaders(to: &request)
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
         let (_, response) = try await interceptor.execute(request)
@@ -389,10 +376,7 @@ public actor AtherAPI {
         }
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("ATHER_APP/13.2.0", forHTTPHeaderField: "Source")
-        request.setValue("Android", forHTTPHeaderField: "X-Platform")
-        request.setValue("ktor-client", forHTTPHeaderField: "User-Agent")
+        applyAtherHeaders(to: &request)
         request.setValue("ATHER_APP", forHTTPHeaderField: "X-Request-Source")
 
         let (data, response) = try await interceptor.execute(request)
