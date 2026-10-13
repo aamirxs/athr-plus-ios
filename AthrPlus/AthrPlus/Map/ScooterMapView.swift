@@ -186,7 +186,7 @@ public struct ScooterMapView: View {
                     withAnimation(.easeInOut(duration: 0.35)) {
                         region = MKCoordinateRegion(
                             center: coordinate,
-                            span: MKCoordinateSpan(latitudeDelta: 0.008, longitudinalDelta: 0.008)
+                            span: MKCoordinateSpan(latitudeDelta: 0.008, longitudeDelta: 0.008)
                         )
                     }
                 } label: {
