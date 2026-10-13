@@ -1,0 +1,44 @@
+import Foundation
+
+public enum Constants {
+    public enum API {
+        public static let baseURL = "https://api.atherenergy.com"
+        public static let version = "v2"
+        public static let defaultTimeout: TimeInterval = 15.0
+    }
+
+    public enum Keychain {
+        public static let serviceName = "com.athrplus.ios.keychain"
+        public static let accessTokenKey = "athr_access_token"
+        public static let refreshTokenKey = "athr_refresh_token"
+    }
+
+    public enum AppGroup {
+        public static let identifier = "group.plus.athr.ios"
+    }
+
+    public enum Polling {
+        public static let snapshotInterval: TimeInterval = 5.0
+        public static let widgetRefreshInterval: TimeInterval = 30.0
+    }
+
+    public static let snapshotPollingInterval: TimeInterval = Polling.snapshotInterval
+
+    public enum BackgroundTasks {
+        public static let refreshIdentifier = "group.plus.athr.ios.refresh"
+        public static let snapshotSyncIdentifier = "group.plus.athr.ios.snapshot"
+    }
+
+    public enum Defaults {
+        public static let countryCode = "+91"
+        public static let chargeTarget = 80
+    }
+
+    // Top-level aliases for direct access
+    public static let apiBaseURL = API.baseURL
+    public static let apiVersion = API.version
+    public static let keychainService = Keychain.serviceName
+    public static let appGroupIdentifier = AppGroup.identifier
+    public static let widgetRefreshInterval: TimeInterval = Polling.widgetRefreshInterval
+    public static let defaultCountryCode = Defaults.countryCode
+}

@@ -1,0 +1,62 @@
+name: AthrPlus
+options:
+  bundleIdPrefix: plus.athr
+  deploymentTarget:
+    iOS: "16.0"
+settings:
+  SWIFT_VERSION: "5.9"
+  IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+
+targets:
+  AthrPlus:
+    type: application
+    platform: iOS
+    sources:
+      - path: AthrPlus
+    entitlements:
+      path: AthrPlus/AthrPlus.entitlements
+    info:
+      path: AthrPlus/Info.plist
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: plus.athr.ios
+      PRODUCT_NAME: Athr+
+      TARGETED_DEVICE_FAMILY: "1,2"
+      CURRENT_PROJECT_VERSION: "1"
+      MARKETING_VERSION: "1.0.0"
+      DEVELOPMENT_ASSET_PATHS: "AthrPlus/Assets.xcassets"
+      ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+      ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+      ENABLE_PREVIEWS: YES
+    dependencies:
+      - target: AthrPlusWidget
+
+  AthrPlusWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: AthrPlusWidget
+      - path: AthrPlus/Utilities/Constants.swift
+      - path: AthrPlus/API/APIModels.swift
+      - path: AthrPlus/Data/Preferences.swift
+    entitlements:
+      path: AthrPlusWidget/AthrPlusWidget.entitlements
+    info:
+      path: AthrPlusWidget/Info.plist
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: plus.athr.ios.widget
+      PRODUCT_NAME: Athr+ Widget
+      TARGETED_DEVICE_FAMILY: "1,2"
+      CURRENT_PROJECT_VERSION: "1"
+      MARKETING_VERSION: "1.0.0"
+      GENERATE_INFOPLIST_FILE: NO
+
+  AthrPlusTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: AthrPlusTests
+    dependencies:
+      - target: AthrPlus
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: plus.athr.ios.tests
+      TARGETED_DEVICE_FAMILY: "1,2"
