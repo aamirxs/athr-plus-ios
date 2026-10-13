@@ -8,6 +8,7 @@
 import SwiftUI
 
 /// Settings view providing configuration, charge limiter options, updates, and account management.
+@MainActor
 public struct SettingsView: View {
     @ObservedObject public var authViewModel: AuthViewModel
     @ObservedObject private var preferences = Preferences.shared
@@ -27,8 +28,8 @@ public struct SettingsView: View {
     private let githubURL = URL(string: "https://github.com/karmugilen/athr-plus")!
     private let brandGreen = Color(red: 0.13, green: 0.77, blue: 0.36)
 
-    public init(authViewModel: AuthViewModel = AuthViewModel()) {
-        self.authViewModel = authViewModel
+    public init(authViewModel: AuthViewModel? = nil) {
+        self.authViewModel = authViewModel ?? AuthViewModel()
     }
 
     private var displayPhoneNumber: String {
