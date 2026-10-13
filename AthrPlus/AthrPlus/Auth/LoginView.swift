@@ -165,6 +165,11 @@ public struct LoginView: View {
                             .foregroundColor(.secondary)
                             .padding(.horizontal, 32)
 
+                        Text("Athr+ v1.0.3 (Build 4)")
+                            .font(.caption2)
+                            .foregroundColor(.secondary.opacity(0.5))
+                            .padding(.top, 4)
+
                         Spacer(minLength: 24)
                     }
                 }

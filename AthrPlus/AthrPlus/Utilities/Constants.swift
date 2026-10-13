@@ -10,10 +10,10 @@ public enum Constants {
     }
 
     public enum HTTPHeaders {
-        public static let source = "ATHER_APP/15.2.0"
-        public static let platform = "iOS"
-        public static let platformVersion = "17.0"
-        public static let userAgent = "Ather/15.2.0 (iPhone; iOS 17.0)"
+        public static let source = "ATHER_APP/17.0.0"
+        public static let platform = "Android"
+        public static let platformVersion = "14"
+        public static let userAgent = "ktor-client"
     }
 
     public enum Keychain {

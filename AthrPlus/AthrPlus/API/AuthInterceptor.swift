@@ -81,7 +81,7 @@ public final class AuthInterceptor: @unchecked Sendable {
 
         var refreshRequest = URLRequest(url: url)
         refreshRequest.httpMethod = "POST"
-        refreshRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        refreshRequest.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
         refreshRequest.setValue("application/json", forHTTPHeaderField: "Accept")
         refreshRequest.setValue("UTF-8", forHTTPHeaderField: "Accept-Charset")
         refreshRequest.setValue(Constants.HTTPHeaders.source, forHTTPHeaderField: "Source")

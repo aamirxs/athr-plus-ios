@@ -34,7 +34,7 @@ public actor AtherAPI {
     // MARK: - Private Header & Request Helper
 
     private func applyAtherHeaders(to request: inout URLRequest) {
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("UTF-8", forHTTPHeaderField: "Accept-Charset")
         request.setValue(Constants.HTTPHeaders.source, forHTTPHeaderField: "Source")

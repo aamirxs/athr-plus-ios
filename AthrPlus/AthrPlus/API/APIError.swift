@@ -22,6 +22,12 @@ public enum APIError: LocalizedError {
         case .decodingError(let error):
             return "Failed to process data from server: \(error.localizedDescription)"
         case .serverError(let code, let message):
+            if code == 459 || message?.contains("maximum limit") == true {
+                return "Too many OTP requests. Ather has temporarily rate-limited attempts. Please wait 10-15 minutes before trying again."
+            }
+            if code == 410 || message?.contains("update your app") == true {
+                return "Ather server requires an app update. Please verify your client version."
+            }
             if let message = message, !message.isEmpty {
                 return "Server error (\(code)): \(message)"
             }
