@@ -27,7 +27,7 @@ public struct SettingsView: View {
     private let githubURL = URL(string: "https://github.com/karmugilen/athr-plus")!
     private let brandGreen = Color(red: 0.13, green: 0.77, blue: 0.36)
 
-    public init(authViewModel: AuthViewModel) {
+    public init(authViewModel: AuthViewModel = AuthViewModel()) {
         self.authViewModel = authViewModel
     }
 

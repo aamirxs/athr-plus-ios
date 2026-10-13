@@ -126,7 +126,7 @@ public final class AppUpdateChecker: ObservableObject {
                 }
             }
 
-            let release = try JSONDecoder().decode(GitHubRelease.self, data: data)
+            let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
             let releaseVersion = release.tagName
             let downloadURL = URL(string: release.htmlUrl)
             let notes = release.body ?? release.name ?? "New version available."
