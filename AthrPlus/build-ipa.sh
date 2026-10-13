@@ -22,7 +22,7 @@ xcodebuild archive \
   CODE_SIGN_ENTITLEMENTS=""
 
 echo "2. Packaging .app into Payload structure..."
-cp -r "build/AthrPlus.xcarchive/Products/Applications/AthrPlus.app" Payload/
+cp -r build/AthrPlus.xcarchive/Products/Applications/*.app Payload/
 
 echo "3. Creating AthrPlus.ipa..."
 zip -qr AthrPlus.ipa Payload

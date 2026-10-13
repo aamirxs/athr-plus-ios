@@ -56,7 +56,7 @@ jobs:
       - name: Package Payload into IPA
         run: |
           mkdir -p Payload
-          cp -r "build/AthrPlus.xcarchive/Products/Applications/AthrPlus.app" Payload/
+          cp -r build/AthrPlus.xcarchive/Products/Applications/*.app Payload/
           zip -qr AthrPlus.ipa Payload
           ls -lh AthrPlus.ipa
 
