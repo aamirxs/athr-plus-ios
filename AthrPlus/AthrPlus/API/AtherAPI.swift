@@ -230,7 +230,7 @@ public actor AtherAPI {
         guard let fbUrl = URL(string: "https://cerberus.ather.io/api/v2/auth/user/scooters/firebase-dbs") else {
             return []
         }
-        var fbRequest = URLRequest(fbUrl)
+        var fbRequest = URLRequest(url: fbUrl)
         fbRequest.httpMethod = "GET"
         fbRequest.setValue("application/json", forHTTPHeaderField: "Accept")
         fbRequest.setValue("ATHER_APP/13.2.0", forHTTPHeaderField: "Source")
@@ -424,7 +424,7 @@ public actor AtherAPI {
                 startTime: start > 0 ? start : Date().timeIntervalSince1970,
                 endTime: end > 0 ? end : Date().timeIntervalSince1970,
                 distance: distanceKm,
-                duration: duration,
+                duration: TimeInterval(duration),
                 averageSpeed: avgSpeed,
                 topSpeed: topSpeed,
                 startBattery: 90,

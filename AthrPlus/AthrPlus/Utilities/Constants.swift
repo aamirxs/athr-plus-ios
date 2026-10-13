@@ -33,6 +33,7 @@ public enum Constants {
 
     public enum Defaults {
         public static let countryCode = "+91"
+        public static let countryId = "IN"
         public static let chargeTarget = 80
     }
 
