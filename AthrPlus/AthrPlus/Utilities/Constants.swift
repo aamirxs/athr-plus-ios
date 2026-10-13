@@ -2,9 +2,11 @@ import Foundation
 
 public enum Constants {
     public enum API {
-        public static let baseURL = "https://api.atherenergy.com"
-        public static let version = "v2"
-        public static let defaultTimeout: TimeInterval = 15.0
+        public static let baseURL = "https://cerberus.ather.io"
+        public static let version = "v1"
+        public static let defaultTimeout: TimeInterval = 20.0
+        public static let generateOtpURL = "https://cerberus.ather.io/auth/v2/generate-login-otp"
+        public static let verifyOtpURL = "https://cerberus.ather.io/auth/v2/verify-login-otp"
     }
 
     public enum Keychain {

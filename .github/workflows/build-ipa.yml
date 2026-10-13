@@ -11,6 +11,8 @@ on:
 jobs:
   build-ipa:
     name: Build & Package Athr+ IPA
+    permissions:
+      contents: write
     runs-on: macos-14
     timeout-minutes: 30
 
@@ -58,6 +60,27 @@ jobs:
           mkdir -p Payload
           cp -r build/AthrPlus.xcarchive/Products/Applications/*.app Payload/
           
+          # Inspect and ensure main app Info.plist has UILaunchScreen (fixes letterboxing/black bars)
+          for app in Payload/*.app; do
+            if [ -d "$app" ]; then
+              echo "=== Checking Info.plist for main app: $app ==="
+              if ! plutil -extract UILaunchScreen xml1 -o - "$app/Info.plist" > /dev/null 2>&1; then
+                echo "UILaunchScreen missing! Injecting into $app/Info.plist to enable full screen on modern iPhones..."
+                plutil -insert UILaunchScreen -xml "<dict/>" "$app/Info.plist"
+              else
+                echo "OK: UILaunchScreen is present in $app/Info.plist"
+              fi
+              if ! plutil -extract NSLocationWhenInUseUsageDescription xml1 -o - "$app/Info.plist" > /dev/null 2>&1; then
+                plutil -insert NSLocationWhenInUseUsageDescription -string "Athr+ requires access to your location to display your position on the map relative to your scooter." "$app/Info.plist"
+              fi
+              if ! plutil -extract NSLocationAlwaysAndWhenInUseUsageDescription xml1 -o - "$app/Info.plist" > /dev/null 2>&1; then
+                plutil -insert NSLocationAlwaysAndWhenInUseUsageDescription -string "Athr+ uses location services to keep you updated on your scooter proximity." "$app/Info.plist"
+              fi
+              echo "=== Verified $app/Info.plist content: ==="
+              plutil -p "$app/Info.plist"
+            fi
+          done
+
           # Inspect and ensure every .appex has a valid NSExtension dictionary in Info.plist
           for appex in Payload/*.app/PlugIns/*.appex; do
             if [ -d "$appex" ]; then

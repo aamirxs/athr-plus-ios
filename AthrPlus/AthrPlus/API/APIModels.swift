@@ -3,16 +3,19 @@ import Foundation
 // MARK: - Authentication Models
 
 public struct OTPRequest: Codable, Sendable {
-    public let phone: String
+    public let email: String
+    public let contactNo: String
     public let countryCode: String
 
-    public init(phone: String, countryCode: String) {
-        self.phone = phone
+    public init(phone: String, countryCode: String = "IN") {
+        self.email = ""
+        self.contactNo = phone
         self.countryCode = countryCode
     }
 
     enum CodingKeys: String, CodingKey {
-        case phone
+        case email
+        case contactNo = "contact_no"
         case countryCode = "country_code"
     }
 }
@@ -21,7 +24,7 @@ public struct OTPResponse: Codable, Sendable {
     public let requestId: String
     public let message: String
 
-    public init(requestId: String, message: String) {
+    public init(requestId: String = UUID().uuidString, message: String = "OTP sent") {
         self.requestId = requestId
         self.message = message
     }
@@ -33,20 +36,26 @@ public struct OTPResponse: Codable, Sendable {
 }
 
 public struct VerifyOTPRequest: Codable, Sendable {
-    public let phone: String
-    public let otp: String
-    public let requestId: String
+    public let email: String
+    public let contactNo: String
+    public let userOtp: String
+    public let isMobileLogin: String
+    public let countryCode: String
 
-    public init(phone: String, otp: String, requestId: String) {
-        self.phone = phone
-        self.otp = otp
-        self.requestId = requestId
+    public init(phone: String, otp: String, countryCode: String = "IN") {
+        self.email = ""
+        self.contactNo = phone
+        self.userOtp = otp
+        self.isMobileLogin = "true"
+        self.countryCode = countryCode
     }
 
     enum CodingKeys: String, CodingKey {
-        case phone
-        case otp
-        case requestId = "request_id"
+        case email
+        case contactNo = "contact_no"
+        case userOtp
+        case isMobileLogin = "is_mobile_login"
+        case countryCode = "country_code"
     }
 }
 

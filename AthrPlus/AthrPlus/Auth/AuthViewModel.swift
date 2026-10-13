@@ -122,7 +122,7 @@ public final class AuthViewModel: ObservableObject {
             let nationalNumber = phone.filter { $0.isNumber }
             let response = try await AtherAPI.shared.sendOTP(
                 phone: nationalNumber,
-                countryCode: countryCode.dialCode
+                countryCode: countryCode.id
             )
 
             self.requestId = response.requestId
@@ -152,7 +152,8 @@ public final class AuthViewModel: ObservableObject {
             _ = try await AtherAPI.shared.verifyOTP(
                 phone: nationalNumber,
                 otp: cleanOtp,
-                requestId: requestId
+                requestId: requestId,
+                countryCode: countryCode.id
             )
 
             try? KeychainHelper.shared.saveString(fullPhoneNumber, forKey: Self.userPhoneKey)
