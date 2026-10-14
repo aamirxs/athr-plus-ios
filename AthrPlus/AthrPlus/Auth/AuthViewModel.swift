@@ -31,6 +31,8 @@ public final class AuthViewModel: ObservableObject {
     @Published public var error: String? = nil
     @Published public var authState: AuthState = .loggedOut
     @Published public var resendCountdown: Int = 30
+    @Published public var showTokenLoginSheet: Bool = false
+    @Published public var tokenInput: String = ""
 
     // Internal task for countdown management
     private var countdownTask: Task<Void, Never>?
@@ -161,6 +163,32 @@ public final class AuthViewModel: ObservableObject {
             countdownTask?.cancel()
             self.authState = .loggedIn
             self.otp = ""
+            self.error = nil
+        } catch {
+            self.error = error.localizedDescription
+        }
+
+        self.isLoading = false
+    }
+
+    /// Logs in using a pre-existing Ather Bearer token.
+    public func loginWithToken(_ rawToken: String) async {
+        let clean = rawToken.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "Bearer ", with: "", options: .caseInsensitive)
+        guard !clean.isEmpty else {
+            self.error = "Please paste a valid Ather authentication token."
+            return
+        }
+        self.isLoading = true
+        self.error = nil
+
+        do {
+            let tokens = AuthTokens(accessToken: clean, refreshToken: clean, expiresIn: 2592000)
+            try await AtherAPI.shared.saveTokens(tokens)
+            countdownTask?.cancel()
+            self.authState = .loggedIn
+            self.showTokenLoginSheet = false
+            self.tokenInput = ""
             self.error = nil
         } catch {
             self.error = error.localizedDescription

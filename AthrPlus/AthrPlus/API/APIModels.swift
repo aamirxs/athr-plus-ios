@@ -2,21 +2,34 @@ import Foundation
 
 // MARK: - Authentication Models
 
+public struct NotificationMedium: Codable, Sendable {
+    public let whatsapp: Bool
+    public let sms: Bool
+
+    public init(whatsapp: Bool = false, sms: Bool = true) {
+        self.whatsapp = whatsapp
+        self.sms = sms
+    }
+}
+
 public struct OTPRequest: Codable, Sendable {
     public let email: String
     public let contactNo: String
     public let countryCode: String
+    public let notificationMedium: NotificationMedium
 
-    public init(phone: String, countryCode: String = "IN") {
+    public init(phone: String, countryCode: String = "IN", notificationMedium: NotificationMedium = NotificationMedium()) {
         self.email = ""
         self.contactNo = phone
         self.countryCode = countryCode
+        self.notificationMedium = notificationMedium
     }
 
     enum CodingKeys: String, CodingKey {
         case email
         case contactNo = "contact_no"
         case countryCode = "country_code"
+        case notificationMedium = "notification_medium"
     }
 }
 
@@ -39,14 +52,14 @@ public struct VerifyOTPRequest: Codable, Sendable {
     public let email: String
     public let contactNo: String
     public let userOtp: String
-    public let isMobileLogin: String
+    public let isMobileLogin: Bool
     public let countryCode: String
 
     public init(phone: String, otp: String, countryCode: String = "IN") {
         self.email = ""
         self.contactNo = phone
         self.userOtp = otp
-        self.isMobileLogin = "true"
+        self.isMobileLogin = true
         self.countryCode = countryCode
     }
 

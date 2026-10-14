@@ -7,4 +7,6 @@ DerivedData/
 Payload/
 
 *.apk
+*.py
+__pycache__/
 

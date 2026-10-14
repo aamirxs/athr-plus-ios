@@ -158,6 +158,47 @@ public struct LoginView: View {
                         .disabled(!viewModel.isPhoneValid || viewModel.isLoading)
                         .padding(.horizontal, 20)
 
+                        // Alternative: Token Login
+                        VStack(spacing: 14) {
+                            HStack {
+                                Rectangle()
+                                    .fill(Color.secondary.opacity(0.2))
+                                    .frame(height: 1)
+                                Text("OR")
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.secondary)
+                                    .padding(.horizontal, 8)
+                                Rectangle()
+                                    .fill(Color.secondary.opacity(0.2))
+                                    .frame(height: 1)
+                            }
+                            .padding(.horizontal, 32)
+
+                            Button {
+                                isPhoneFocused = false
+                                viewModel.showTokenLoginSheet = true
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "key.fill")
+                                        .font(.subheadline)
+                                    Text("Sign in with Ather Token")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(Color(.secondarySystemBackground))
+                                .foregroundColor(.primary)
+                                .cornerRadius(12)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                                )
+                            }
+                            .padding(.horizontal, 20)
+                        }
+
                         // Privacy & Terms Notice
                         Text("By proceeding, you agree to connect Athr+ to your scooter account.")
                             .font(.caption2)
@@ -165,7 +206,7 @@ public struct LoginView: View {
                             .foregroundColor(.secondary)
                             .padding(.horizontal, 32)
 
-                        Text("Athr+ v1.0.3 (Build 4)")
+                        Text("Athr+ v1.0.4 (Build 5)")
                             .font(.caption2)
                             .foregroundColor(.secondary.opacity(0.5))
                             .padding(.top, 4)
@@ -184,7 +225,7 @@ public struct LoginView: View {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                 .scaleEffect(1.3)
-                            Text("Sending verification code...")
+                            Text("Connecting...")
                                 .font(.subheadline)
                                 .foregroundColor(.white)
                                 .fontWeight(.medium)
@@ -208,6 +249,94 @@ public struct LoginView: View {
             }
             .sheet(isPresented: $showingCountryPicker) {
                 CountryCodePickerView(selectedCountry: $viewModel.countryCode)
+            }
+            .sheet(isPresented: $viewModel.showTokenLoginSheet) {
+                NavigationStack {
+                    VStack(alignment: .leading, spacing: 20) {
+                        Text("Ather Account Token")
+                            .font(.headline)
+                            .padding(.top, 8)
+
+                        Text("Because Ather's servers enforce Google Play Integrity / App Check on OTP generation for third-party apps, you can connect directly by pasting your existing Ather Bearer token.")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                            .lineSpacing(3)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("TOKEN")
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                if let clip = UIPasteboard.general.string, !clip.isEmpty {
+                                    Button("Paste from Clipboard") {
+                                        viewModel.tokenInput = clip
+                                    }
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(brandGreen)
+                                }
+                            }
+
+                            TextEditor(text: $viewModel.tokenInput)
+                                .frame(height: 110)
+                                .font(.system(.footnote, design: .monospaced))
+                                .padding(8)
+                                .background(Color(.secondarySystemBackground))
+                                .cornerRadius(10)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                                )
+                        }
+
+                        Button {
+                            Task {
+                                await viewModel.loginWithToken(viewModel.tokenInput)
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "bolt.fill")
+                                Text("Connect Scooter")
+                                    .fontWeight(.bold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(!viewModel.tokenInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? brandGreen : brandGreen.opacity(0.4))
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                        }
+                        .disabled(viewModel.tokenInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("How to obtain your token:")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+                            Text("• Option A: From Android app data (/data/data/com.athermobileapp/shared_prefs/)\n• Option B: Via HTTP proxy (PCAPdroid, Reqable, or Proxyman) on your phone when opening the official Ather app.")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .lineSpacing(2)
+                        }
+                        .padding(12)
+                        .background(Color(.secondarySystemBackground).opacity(0.7))
+                        .cornerRadius(10)
+
+                        Spacer()
+                    }
+                    .padding(20)
+                    .navigationTitle("Token Sign In")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") {
+                                viewModel.showTokenLoginSheet = false
+                            }
+                        }
+                    }
+                }
+                .presentationDetents([.medium, .large])
             }
             .alert(
                 "Authentication Notice",

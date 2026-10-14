@@ -5,14 +5,14 @@ public enum Constants {
         public static let baseURL = "https://cerberus.ather.io"
         public static let version = "v1"
         public static let defaultTimeout: TimeInterval = 20.0
-        public static let generateOtpURL = "https://cerberus.ather.io/auth/v2/generate-login-otp"
-        public static let verifyOtpURL = "https://cerberus.ather.io/auth/v2/verify-login-otp"
+        public static let generateOtpURL = "https://cerberus.ather.io/api/v2/req/9a11"
+        public static let verifyOtpURL = "https://cerberus.ather.io/api/v2/req/4c33"
     }
 
     public enum HTTPHeaders {
-        public static let source = "ATHER_APP/17.0.0"
-        public static let platform = "Android"
-        public static let platformVersion = "14"
+        public static let source = "ATHER_APP_IOS/13.5.1"
+        public static let platform = "iOS"
+        public static let platformVersion = "17.5.1"
         public static let userAgent = "ktor-client"
     }
 

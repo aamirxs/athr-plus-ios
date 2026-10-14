@@ -90,6 +90,11 @@ public actor AtherAPI {
 
         guard (200...299).contains(httpResponse.statusCode) else {
             if httpResponse.statusCode == 401 {
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let errorCode = json["errorCode"] as? Int,
+                   (errorCode == 1013 || errorCode == 1014) {
+                    throw APIError.serverError(401, "Ather requires App Check verification (Error \(errorCode)). Please use 'Sign in with Token'.")
+                }
                 throw APIError.unauthorized
             }
             let errorMessage = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["message"] as? String
@@ -120,7 +125,7 @@ public actor AtherAPI {
         let cleanCountry = countryCode.hasPrefix("+") ? "IN" : countryCode
         let requestBody = OTPRequest(phone: phone, countryCode: cleanCountry)
         let _: EmptyResponse = try await request(
-            "https://cerberus.ather.io/auth/v2/generate-login-otp",
+            Constants.API.generateOtpURL,
             method: "POST",
             body: requestBody,
             authenticated: false
@@ -133,7 +138,7 @@ public actor AtherAPI {
         let cleanCountry = countryCode.hasPrefix("+") ? "IN" : countryCode
         let requestBody = VerifyOTPRequest(phone: phone, otp: otp, countryCode: cleanCountry)
 
-        guard let url = URL(string: "https://cerberus.ather.io/auth/v2/verify-login-otp") else {
+        guard let url = URL(string: Constants.API.verifyOtpURL) else {
             throw APIError.invalidURL
         }
         var urlRequest = URLRequest(url: url)
@@ -189,6 +194,14 @@ public actor AtherAPI {
     /// Explicitly refreshes auth tokens and updates Keychain.
     public func refreshToken() async throws -> AuthTokens {
         try await interceptor.refreshToken()
+    }
+
+    /// Saves externally supplied auth tokens (e.g. from token login) directly into Keychain and sets logged-in state.
+    public func saveTokens(_ tokens: AuthTokens) async throws {
+        try keychain.saveTokens(tokens)
+        await MainActor.run {
+            Preferences.shared.isLoggedIn = true
+        }
     }
 
     /// Fetches all vehicles linked to the authenticated user account via /api/v1/me or firebase-dbs fallback.
