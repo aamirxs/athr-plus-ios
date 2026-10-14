@@ -33,12 +33,26 @@ public final class AuthViewModel: ObservableObject {
     @Published public var resendCountdown: Int = 30
     @Published public var showTokenLoginSheet: Bool = false
     @Published public var tokenInput: String = ""
+    @Published public var showAppCheckSheet: Bool = false
+    @Published public var showWebLoginSheet: Bool = false
+    @Published public var appCheckTokenInput: String = ""
+    @Published public var appCheckDebugTokenInput: String = ""
 
     // Internal task for countdown management
     private var countdownTask: Task<Void, Never>?
 
     public init() {
         checkExistingAuth()
+        loadAppCheckSettings()
+    }
+
+    private func loadAppCheckSettings() {
+        if let token = KeychainHelper.shared.loadString(forKey: Constants.Keychain.appCheckTokenKey) {
+            self.appCheckTokenInput = token
+        }
+        if let debugToken = KeychainHelper.shared.loadString(forKey: Constants.Keychain.appCheckDebugTokenKey) {
+            self.appCheckDebugTokenInput = debugToken
+        }
     }
 
     deinit {
@@ -194,6 +208,41 @@ public final class AuthViewModel: ObservableObject {
             self.error = error.localizedDescription
         }
 
+        self.isLoading = false
+    }
+
+    /// Saves a raw Firebase App Check JWT token.
+    public func saveAppCheckToken(_ rawToken: String) async {
+        let clean = rawToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.isLoading = true
+        self.error = nil
+        do {
+            try await AtherAPI.shared.setAppCheckToken(clean.isEmpty ? nil : clean)
+            self.appCheckTokenInput = clean
+            self.showAppCheckSheet = false
+        } catch {
+            self.error = error.localizedDescription
+        }
+        self.isLoading = false
+    }
+
+    /// Exchanges a Firebase Debug Token UUID for an App Check JWT.
+    public func exchangeAppCheckDebugToken(_ debugToken: String) async {
+        let clean = debugToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else {
+            self.error = "Please enter a valid Firebase debug token UUID."
+            return
+        }
+        self.isLoading = true
+        self.error = nil
+        do {
+            let jwt = try await AtherAPI.shared.exchangeDebugToken(clean)
+            self.appCheckTokenInput = jwt
+            self.appCheckDebugTokenInput = clean
+            self.showAppCheckSheet = false
+        } catch {
+            self.error = error.localizedDescription
+        }
         self.isLoading = false
     }
 

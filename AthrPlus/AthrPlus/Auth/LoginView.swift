@@ -134,7 +134,7 @@ public struct LoginView: View {
                         .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 3)
                         .padding(.horizontal, 20)
 
-                        // Action Button
+                        // Action Button - Send OTP
                         Button {
                             isPhoneFocused = false
                             Task {
@@ -158,13 +158,13 @@ public struct LoginView: View {
                         .disabled(!viewModel.isPhoneValid || viewModel.isLoading)
                         .padding(.horizontal, 20)
 
-                        // Alternative: Token Login
-                        VStack(spacing: 14) {
+                        // Alternative Sign-in Options
+                        VStack(spacing: 12) {
                             HStack {
                                 Rectangle()
                                     .fill(Color.secondary.opacity(0.2))
                                     .frame(height: 1)
-                                Text("OR")
+                                Text("ALTERNATIVE LOGIN OPTIONS")
                                     .font(.caption2)
                                     .fontWeight(.bold)
                                     .foregroundColor(.secondary)
@@ -173,21 +173,23 @@ public struct LoginView: View {
                                     .fill(Color.secondary.opacity(0.2))
                                     .frame(height: 1)
                             }
-                            .padding(.horizontal, 32)
+                            .padding(.horizontal, 24)
+                            .padding(.top, 4)
 
+                            // Option 1: In-App Web OTP
                             Button {
                                 isPhoneFocused = false
-                                viewModel.showTokenLoginSheet = true
+                                viewModel.showWebLoginSheet = true
                             } label: {
                                 HStack(spacing: 8) {
-                                    Image(systemName: "key.fill")
+                                    Image(systemName: "globe")
                                         .font(.subheadline)
-                                    Text("Sign in with Ather Token")
+                                    Text("Sign in with Web OTP")
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
                                 }
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
+                                .padding(.vertical, 13)
                                 .background(Color(.secondarySystemBackground))
                                 .foregroundColor(.primary)
                                 .cornerRadius(12)
@@ -195,6 +197,47 @@ public struct LoginView: View {
                                     RoundedRectangle(cornerRadius: 12)
                                         .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
                                 )
+                            }
+                            .padding(.horizontal, 20)
+
+                            HStack(spacing: 12) {
+                                // Option 2: Firebase App Check
+                                Button {
+                                    isPhoneFocused = false
+                                    viewModel.showAppCheckSheet = true
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "shield.checkmark.fill")
+                                            .font(.caption)
+                                        Text("App Check")
+                                            .font(.caption)
+                                            .fontWeight(.semibold)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 11)
+                                    .background(Color(.secondarySystemBackground))
+                                    .foregroundColor(.secondary)
+                                    .cornerRadius(10)
+                                }
+
+                                // Option 3: Direct Token
+                                Button {
+                                    isPhoneFocused = false
+                                    viewModel.showTokenLoginSheet = true
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "key.fill")
+                                            .font(.caption)
+                                        Text("Paste Token")
+                                            .font(.caption)
+                                            .fontWeight(.semibold)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 11)
+                                    .background(Color(.secondarySystemBackground))
+                                    .foregroundColor(.secondary)
+                                    .cornerRadius(10)
+                                }
                             }
                             .padding(.horizontal, 20)
                         }
@@ -206,7 +249,7 @@ public struct LoginView: View {
                             .foregroundColor(.secondary)
                             .padding(.horizontal, 32)
 
-                        Text("Athr+ v1.0.4 (Build 5)")
+                        Text("Athr+ v1.0.5 (Build 6)")
                             .font(.caption2)
                             .foregroundColor(.secondary.opacity(0.5))
                             .padding(.top, 4)
@@ -338,6 +381,12 @@ public struct LoginView: View {
                 }
                 .presentationDetents([.medium, .large])
             }
+            .sheet(isPresented: $viewModel.showWebLoginSheet) {
+                AtherWebLoginView(viewModel: viewModel)
+            }
+            .sheet(isPresented: $viewModel.showAppCheckSheet) {
+                AppCheckSheetView(viewModel: viewModel)
+            }
             .alert(
                 "Authentication Notice",
                 isPresented: Binding(
@@ -345,6 +394,17 @@ public struct LoginView: View {
                     set: { if !$0 { viewModel.error = nil } }
                 )
             ) {
+                if (viewModel.error?.contains("App Check") == true) || (viewModel.error?.contains("1013") == true) || (viewModel.error?.contains("1014") == true) {
+                    Button("Sign in with Web OTP") {
+                        let err = viewModel.error
+                        viewModel.error = nil
+                        viewModel.showWebLoginSheet = true
+                    }
+                    Button("App Check Setup") {
+                        viewModel.error = nil
+                        viewModel.showAppCheckSheet = true
+                    }
+                }
                 Button("OK", role: .cancel) {
                     viewModel.error = nil
                 }

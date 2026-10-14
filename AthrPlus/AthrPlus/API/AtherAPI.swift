@@ -12,6 +12,7 @@ public actor AtherAPI {
     private let encoder: JSONEncoder
     private let interceptor: AuthInterceptor
     private let keychain: KeychainHelper
+    private var appCheckToken: String?
 
     public init(
         session: URLSession = .shared,
@@ -21,6 +22,7 @@ public actor AtherAPI {
         self.session = session
         self.interceptor = interceptor
         self.keychain = keychain
+        self.appCheckToken = keychain.loadString(forKey: Constants.Keychain.appCheckTokenKey)
 
         let dec = JSONDecoder()
         dec.keyDecodingStrategy = .convertFromSnakeCase
@@ -41,6 +43,9 @@ public actor AtherAPI {
         request.setValue(Constants.HTTPHeaders.platform, forHTTPHeaderField: "X-Platform")
         request.setValue(Constants.HTTPHeaders.platformVersion, forHTTPHeaderField: "X-Platform-Version")
         request.setValue(Constants.HTTPHeaders.userAgent, forHTTPHeaderField: "User-Agent")
+        if let token = appCheckToken, !token.isEmpty {
+            request.setValue(token, forHTTPHeaderField: "X-Firebase-AppCheck")
+        }
     }
 
     private func request<T: Decodable>(
@@ -202,6 +207,56 @@ public actor AtherAPI {
         await MainActor.run {
             Preferences.shared.isLoggedIn = true
         }
+    }
+
+    /// Updates the App Check token in memory and persists to Keychain.
+    public func setAppCheckToken(_ token: String?) throws {
+        self.appCheckToken = token
+        if let token = token, !token.isEmpty {
+            try keychain.saveString(token, forKey: Constants.Keychain.appCheckTokenKey)
+        } else {
+            try? keychain.delete(forKey: Constants.Keychain.appCheckTokenKey)
+        }
+    }
+
+    /// Retrieves the active App Check token.
+    public func getAppCheckToken() -> String? {
+        return self.appCheckToken
+    }
+
+    /// Exchanges a Firebase App Check Debug Token with Google's API to mint a valid App Check JWT.
+    public func exchangeDebugToken(_ debugToken: String) async throws -> String {
+        let cleanToken = debugToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanToken.isEmpty else {
+            throw APIError.serverError(400, "Debug token cannot be empty.")
+        }
+        let urlString = "https://firebaseappcheck.googleapis.com/v1/projects/\(Constants.Firebase.projectID)/apps/\(Constants.Firebase.androidAppID):exchangeDebugToken?key=\(Constants.Firebase.apiKey)"
+        guard let url = URL(string: urlString) else {
+            throw APIError.invalidURL
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["debug_token": cleanToken])
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.networkError(URLError(.badServerResponse))
+        }
+        guard (200...299).contains(http.statusCode) else {
+            let errorMsg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? [String: Any]
+            let message = errorMsg?["message"] as? String ?? "HTTP \(http.statusCode)"
+            throw APIError.serverError(http.statusCode, "Firebase App Check failed: \(message)")
+        }
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let jwt = json["token"] as? String else {
+            throw APIError.noData
+        }
+
+        try setAppCheckToken(jwt)
+        try keychain.saveString(cleanToken, forKey: Constants.Keychain.appCheckDebugTokenKey)
+        return jwt
     }
 
     /// Fetches all vehicles linked to the authenticated user account via /api/v1/me or firebase-dbs fallback.

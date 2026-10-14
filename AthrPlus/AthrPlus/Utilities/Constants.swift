@@ -20,6 +20,14 @@ public enum Constants {
         public static let serviceName = "com.athrplus.ios.keychain"
         public static let accessTokenKey = "athr_access_token"
         public static let refreshTokenKey = "athr_refresh_token"
+        public static let appCheckTokenKey = "athr_appcheck_token"
+        public static let appCheckDebugTokenKey = "athr_appcheck_debug_token"
+    }
+
+    public enum Firebase {
+        public static let projectID = "ather-production"
+        public static let androidAppID = "1:435146131305:android:4a05ee58548d3740"
+        public static let apiKey = "AIzaSyBj-mQpnmYrd6Cnl6M5RzmP2tcsUZEk4ik"
     }
 
     public enum AppGroup {
