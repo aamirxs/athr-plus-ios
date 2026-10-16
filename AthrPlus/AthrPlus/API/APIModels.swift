@@ -33,18 +33,17 @@ public struct OTPRequest: Codable, Sendable {
     }
 }
 
-public struct OTPResponse: Codable, Sendable {
-    public let requestId: String
+public struct OTPResponse: Sendable {
+    /// Server message, e.g. "OTP generated and stored successfully."
     public let message: String
+    /// Remaining verification attempts (server tracks these per OTP session).
+    public let attemptsLeft: Int?
+    public let totalAttempts: Int?
 
-    public init(requestId: String = UUID().uuidString, message: String = "OTP sent") {
-        self.requestId = requestId
+    public init(message: String = "OTP sent successfully", attemptsLeft: Int? = nil, totalAttempts: Int? = nil) {
         self.message = message
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case requestId = "request_id"
-        case message
+        self.attemptsLeft = attemptsLeft
+        self.totalAttempts = totalAttempts
     }
 }
 

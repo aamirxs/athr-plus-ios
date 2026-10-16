@@ -8,6 +8,9 @@ public enum APIError: LocalizedError {
     case decodingError(Error)
     case serverError(Int, String?)
     case noData
+    /// The OTP was verified but no account session could be created (Ather gates
+    /// existing-account sign-in behind Firebase App Check). Carries a user-facing message.
+    case otpVerifiedNoSession(String)
 
     public var errorDescription: String? {
         switch self {
@@ -21,6 +24,8 @@ public enum APIError: LocalizedError {
             return "Network connection error: \(error.localizedDescription)"
         case .decodingError(let error):
             return "Failed to process data from server: \(error.localizedDescription)"
+        case .otpVerifiedNoSession(let message):
+            return message
         case .serverError(let code, let message):
             if code == 459 || message?.contains("maximum limit") == true {
                 return "Too many OTP requests. Ather has temporarily rate-limited attempts. Please wait 10-15 minutes before trying again."

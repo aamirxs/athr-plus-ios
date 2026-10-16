@@ -14,6 +14,14 @@ public actor AtherAPI {
     private let keychain: KeychainHelper
     private var appCheckToken: String?
 
+    /// Tracks which OTP route family the last `sendOTP` used so `verifyOTP` pairs correctly:
+    /// `.login` (9a11/9a12, requires App Check) or `.signup` (8b21/8b22).
+    private enum OTPFamily {
+        case login
+        case signup
+    }
+    private var lastOTPFamily: OTPFamily = .signup
+
     public init(
         session: URLSession = .shared,
         interceptor: AuthInterceptor = .shared,
@@ -35,7 +43,7 @@ public actor AtherAPI {
 
     // MARK: - Private Header & Request Helper
 
-    private func applyAtherHeaders(to request: inout URLRequest) {
+    private func applyAtherHeaders(to request: inout URLRequest, includeAppCheck: Bool = false) {
         request.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("UTF-8", forHTTPHeaderField: "Accept-Charset")
@@ -43,7 +51,10 @@ public actor AtherAPI {
         request.setValue(Constants.HTTPHeaders.platform, forHTTPHeaderField: "X-Platform")
         request.setValue(Constants.HTTPHeaders.platformVersion, forHTTPHeaderField: "X-Platform-Version")
         request.setValue(Constants.HTTPHeaders.userAgent, forHTTPHeaderField: "User-Agent")
-        if let token = appCheckToken, !token.isEmpty {
+        // IMPORTANT: only attach App Check to routes that expect it (9a11/9a12).
+        // Un-gated routes (8b21/8b22/signup) reject requests that carry an invalid or
+        // stale App Check token (errorCode 1014) even though they work fine without it.
+        if includeAppCheck, let token = appCheckToken, !token.isEmpty {
             request.setValue(token, forHTTPHeaderField: "X-Firebase-AppCheck")
         }
     }
@@ -123,77 +134,158 @@ public actor AtherAPI {
         }
     }
 
-    // MARK: - Public Methods
+    // MARK: - Private Auth Helpers
 
-    /// Sends an OTP to the given phone number via Ather Cerberus API.
-    public func sendOTP(phone: String, countryCode: String = Constants.Defaults.countryId) async throws -> OTPResponse {
-        let cleanCountry = countryCode.hasPrefix("+") ? "IN" : countryCode
-        let requestBody = OTPRequest(phone: phone, countryCode: cleanCountry)
-        let _: EmptyResponse = try await request(
-            Constants.API.generateOtpURL,
-            method: "POST",
-            body: requestBody,
-            authenticated: false
-        )
-        return OTPResponse(requestId: UUID().uuidString, message: "OTP sent successfully")
+    private func normalizedCountry(_ countryCode: String) -> String {
+        countryCode.hasPrefix("+") ? "IN" : countryCode
     }
 
-    /// Verifies the OTP with Ather Cerberus, saves token to Keychain, and sets logged-in state.
-    public func verifyOTP(phone: String, otp: String, requestId: String = "", countryCode: String = Constants.Defaults.countryId) async throws -> AuthTokens {
-        let cleanCountry = countryCode.hasPrefix("+") ? "IN" : countryCode
-        let requestBody = VerifyOTPRequest(phone: phone, otp: otp, countryCode: cleanCountry)
-
-        guard let url = URL(string: Constants.API.verifyOtpURL) else {
+    private func postJSON(_ urlString: String, body: [String: Any], includeAppCheck: Bool = false) async throws -> (status: Int, data: Data) {
+        guard let url = URL(string: urlString) else {
             throw APIError.invalidURL
         }
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
-        applyAtherHeaders(to: &urlRequest)
+        applyAtherHeaders(to: &urlRequest, includeAppCheck: includeAppCheck)
         urlRequest.timeoutInterval = Constants.API.defaultTimeout
-        urlRequest.httpBody = try encoder.encode(requestBody)
+        urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (data, response) = try await session.data(for: urlRequest)
         guard let http = response as? HTTPURLResponse else {
             throw APIError.networkError(URLError(.badServerResponse))
         }
-        guard (200...299).contains(http.statusCode) else {
-            let errorMsg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["message"] as? String
-                ?? (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
-                ?? String(data: data, encoding: .utf8)
-                ?? "HTTP \(http.statusCode)"
-            throw APIError.serverError(http.statusCode, errorMsg)
+        return (http.statusCode, data)
+    }
+
+    private func jsonObject(of data: Data) -> [String: Any] {
+        (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+    }
+
+    private func isAppCheckFailure(_ status: Int, _ json: [String: Any]) -> Bool {
+        guard status == 401 else { return false }
+        let code = json["errorCode"] as? Int
+        return code == 1013 || code == 1014
+    }
+
+    private func authError(_ status: Int, _ data: Data) -> APIError {
+        let json = jsonObject(of: data)
+        if isAppCheckFailure(status, json) {
+            let code = json["errorCode"] as? Int ?? 1013
+            return .serverError(status, "Ather requires App Check verification (Error \(code)). Please use 'Sign in with Ather Token' or configure an App Check token and try again.")
         }
+        let message = (json["message"] as? String)
+            ?? (json["error"] as? String)
+            ?? String(data: data, encoding: .utf8)
+            ?? "HTTP \(status)"
+        return .serverError(status, message)
+    }
 
-        // Parse token from root "token", "token.access_token", or "data.token"
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw APIError.noData
+    private func otpResponse(from data: Data) -> OTPResponse {
+        let json = jsonObject(of: data)
+        return OTPResponse(
+            message: (json["message"] as? String) ?? "OTP sent successfully",
+            attemptsLeft: json["attemptsLeft"] as? Int,
+            totalAttempts: json["totalAttempts"] as? Int
+        )
+    }
+
+    private func persistSession(from data: Data) async throws -> AuthTokens {
+        let json = jsonObject(of: data)
+        guard let token = json["token"] as? String, !token.isEmpty else {
+            throw APIError.serverError(200, "Ather accepted the login but did not return an account token.")
         }
-
-        let tokenString: String? = {
-            if let token = json["token"] as? String { return token }
-            if let tokenObj = json["token"] as? [String: Any],
-               let token = (tokenObj["token"] ?? tokenObj["access_token"]) as? String {
-                return token
-            }
-            if let dataObj = json["data"] as? [String: Any] {
-                if let token = (dataObj["token"] ?? dataObj["access_token"]) as? String {
-                    return token
-                }
-            }
-            return nil
-        }()
-
-        guard let token = tokenString, !token.isEmpty else {
-            throw APIError.serverError(http.statusCode, "Login succeeded but token was missing from response.")
-        }
-
+        // Ather issues a long-lived Bearer token; it doubles as the refresh token here.
         let tokens = AuthTokens(accessToken: token, refreshToken: token, expiresIn: 2592000)
         try keychain.saveTokens(tokens)
         await MainActor.run {
             Preferences.shared.isLoggedIn = true
         }
-
         return tokens
+    }
+
+    // MARK: - Public Methods
+
+    /// Sends an OTP to the given phone number.
+    ///
+    /// Uses the canonical login route (9a11) when a valid App Check token is configured,
+    /// otherwise the un-gated 8b21 route that the current Ather app uses for signup OTP
+    /// (SMS delivery confirmed against the live production backend).
+    public func sendOTP(phone: String, countryCode: String = Constants.Defaults.countryId) async throws -> OTPResponse {
+        let cleanCountry = normalizedCountry(countryCode)
+        let notification: [String: Any] = ["whatsapp": false, "sms": true]
+
+        if let token = appCheckToken, !token.isEmpty {
+            let loginBody: [String: Any] = [
+                "email": "",
+                "contact_no": phone,
+                "country_code": cleanCountry,
+                "notification_medium": notification
+            ]
+            let (status, data) = try await postJSON(Constants.API.loginGenerateOtpURL, body: loginBody, includeAppCheck: true)
+            if (200...299).contains(status) {
+                lastOTPFamily = .login
+                return otpResponse(from: data)
+            }
+            // Only fall back when the App Check token itself was rejected; surface
+            // any real business error (rate limit, validation, …) as-is.
+            if !isAppCheckFailure(status, jsonObject(of: data)) {
+                throw authError(status, data)
+            }
+        }
+
+        let body: [String: Any] = [
+            "contact_no": phone,
+            "country_code": cleanCountry,
+            "notification_medium": notification
+        ]
+        let (status, data) = try await postJSON(Constants.API.generateOtpURL, body: body)
+        guard (200...299).contains(status) else {
+            throw authError(status, data)
+        }
+        lastOTPFamily = .signup
+        return otpResponse(from: data)
+    }
+
+    /// Verifies the OTP and establishes an authenticated session.
+    ///
+    /// Login family (App Check token configured): 9a12 returns the account token directly.
+    /// Signup family (default, no App Check): 8b22 verifies the code against Ather's live
+    /// backend. Ather only issues account tokens to official flows (existing accounts go
+    /// through the App Check-gated 9a12 route), so after verification the user is guided
+    /// to the token sign-in path.
+    public func verifyOTP(phone: String, otp: String, countryCode: String = Constants.Defaults.countryId) async throws -> AuthTokens {
+        let cleanCountry = normalizedCountry(countryCode)
+
+        if lastOTPFamily == .login, let token = appCheckToken, !token.isEmpty {
+            let body: [String: Any] = [
+                "email": "",
+                "contact_no": phone,
+                "userOtp": otp,
+                "is_mobile_login": true,
+                "country_code": cleanCountry
+            ]
+            let (status, data) = try await postJSON(Constants.API.loginVerifyOtpURL, body: body, includeAppCheck: true)
+            guard (200...299).contains(status) else {
+                throw authError(status, data)
+            }
+            return try await persistSession(from: data)
+        }
+
+        // Verify the code against Ather's backend (8b22). Wrong codes return errorCode
+        // 1006 with the remaining attempts in the message, shown to the user verbatim.
+        let verifyBody: [String: Any] = [
+            "otp": otp,
+            "contact_no": phone,
+            "country_code": cleanCountry
+        ]
+        let (verifyStatus, verifyData) = try await postJSON(Constants.API.verifyOtpURL, body: verifyBody)
+        guard (200...299).contains(verifyStatus) else {
+            throw authError(verifyStatus, verifyData)
+        }
+
+        // Code verified, but Ather does not issue a session token on this route:
+        // existing accounts must sign in through the App Check-gated 9a12 route.
+        throw APIError.otpVerifiedNoSession("OTP verified successfully. Ather requires Firebase App Check to sign an existing account into third-party apps, which this build cannot generate. Use 'Sign in with Ather Token' to connect, or configure an App Check token and try again.")
     }
 
     /// Explicitly refreshes auth tokens and updates Keychain.

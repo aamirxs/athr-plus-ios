@@ -176,15 +176,15 @@ public struct LoginView: View {
                             .padding(.horizontal, 24)
                             .padding(.top, 4)
 
-                            // Option 1: In-App Web OTP
+                            // Option 1: Ather Bearer token (required for existing accounts)
                             Button {
                                 isPhoneFocused = false
-                                viewModel.showWebLoginSheet = true
+                                viewModel.showTokenLoginSheet = true
                             } label: {
                                 HStack(spacing: 8) {
-                                    Image(systemName: "globe")
+                                    Image(systemName: "key.fill")
                                         .font(.subheadline)
-                                    Text("Sign in with Web OTP")
+                                    Text("Sign in with Ather Token")
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
                                 }
@@ -200,44 +200,23 @@ public struct LoginView: View {
                             }
                             .padding(.horizontal, 20)
 
-                            HStack(spacing: 12) {
-                                // Option 2: Firebase App Check
-                                Button {
-                                    isPhoneFocused = false
-                                    viewModel.showAppCheckSheet = true
-                                } label: {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "shield.checkmark.fill")
-                                            .font(.caption)
-                                        Text("App Check")
-                                            .font(.caption)
-                                            .fontWeight(.semibold)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 11)
-                                    .background(Color(.secondarySystemBackground))
-                                    .foregroundColor(.secondary)
-                                    .cornerRadius(10)
+                            // Option 2: Firebase App Check setup
+                            Button {
+                                isPhoneFocused = false
+                                viewModel.showAppCheckSheet = true
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "shield.checkmark.fill")
+                                        .font(.caption)
+                                    Text("App Check Setup")
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
                                 }
-
-                                // Option 3: Direct Token
-                                Button {
-                                    isPhoneFocused = false
-                                    viewModel.showTokenLoginSheet = true
-                                } label: {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "key.fill")
-                                            .font(.caption)
-                                        Text("Paste Token")
-                                            .font(.caption)
-                                            .fontWeight(.semibold)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 11)
-                                    .background(Color(.secondarySystemBackground))
-                                    .foregroundColor(.secondary)
-                                    .cornerRadius(10)
-                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 11)
+                                .background(Color(.secondarySystemBackground))
+                                .foregroundColor(.secondary)
+                                .cornerRadius(10)
                             }
                             .padding(.horizontal, 20)
                         }
@@ -249,7 +228,7 @@ public struct LoginView: View {
                             .foregroundColor(.secondary)
                             .padding(.horizontal, 32)
 
-                        Text("Athr+ v1.0.5 (Build 6)")
+                        Text("Athr+ v1.0.6 (Build 7)")
                             .font(.caption2)
                             .foregroundColor(.secondary.opacity(0.5))
                             .padding(.top, 4)
@@ -300,7 +279,7 @@ public struct LoginView: View {
                             .font(.headline)
                             .padding(.top, 8)
 
-                        Text("Because Ather's servers enforce Google Play Integrity / App Check on OTP generation for third-party apps, you can connect directly by pasting your existing Ather Bearer token.")
+                        Text("Ather's servers enforce Firebase App Check on account sign-in for third-party apps. The OTP screen confirms your number, but completing the login requires your Ather Bearer token — paste it below to connect directly.")
                             .font(.footnote)
                             .foregroundColor(.secondary)
                             .lineSpacing(3)
@@ -381,9 +360,6 @@ public struct LoginView: View {
                 }
                 .presentationDetents([.medium, .large])
             }
-            .sheet(isPresented: $viewModel.showWebLoginSheet) {
-                AtherWebLoginView(viewModel: viewModel)
-            }
             .sheet(isPresented: $viewModel.showAppCheckSheet) {
                 AppCheckSheetView(viewModel: viewModel)
             }
@@ -394,11 +370,10 @@ public struct LoginView: View {
                     set: { if !$0 { viewModel.error = nil } }
                 )
             ) {
-                if (viewModel.error?.contains("App Check") == true) || (viewModel.error?.contains("1013") == true) || (viewModel.error?.contains("1014") == true) {
-                    Button("Sign in with Web OTP") {
-                        let err = viewModel.error
+                if (viewModel.error?.contains("App Check") == true) || (viewModel.error?.contains("already exists") == true) || (viewModel.error?.contains("1013") == true) || (viewModel.error?.contains("1014") == true) {
+                    Button("Sign in with Ather Token") {
                         viewModel.error = nil
-                        viewModel.showWebLoginSheet = true
+                        viewModel.showTokenLoginSheet = true
                     }
                     Button("App Check Setup") {
                         viewModel.error = nil

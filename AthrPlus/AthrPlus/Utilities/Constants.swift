@@ -5,8 +5,19 @@ public enum Constants {
         public static let baseURL = "https://cerberus.ather.io"
         public static let version = "v1"
         public static let defaultTimeout: TimeInterval = 20.0
-        public static let generateOtpURL = "https://cerberus.ather.io/api/v2/req/9a11"
-        public static let verifyOtpURL = "https://cerberus.ather.io/api/v2/req/4c33"
+
+        // MARK: OTP routes (v13.5.1)
+        // Verified live against cerberus.ather.io: these routes respond without Firebase
+        // App Check, so they are the OTP path for Athr+ (SMS delivery confirmed).
+        public static let generateOtpURL = "https://cerberus.ather.io/api/v2/req/8b21"
+        public static let verifyOtpURL = "https://cerberus.ather.io/api/v2/req/8b22"
+
+        // MARK: Canonical login routes
+        // Ather enforces Firebase App Check (errorCode 1013 missing / 1014 invalid) on
+        // these routes. Athr+ only calls them when the user has configured a valid
+        // App Check token; otherwise it uses the un-gated routes above.
+        public static let loginGenerateOtpURL = "https://cerberus.ather.io/api/v2/req/9a11"
+        public static let loginVerifyOtpURL = "https://cerberus.ather.io/api/v2/req/9a12"
     }
 
     public enum HTTPHeaders {

@@ -26,7 +26,6 @@ public final class AuthViewModel: ObservableObject {
     @Published public var phone: String = ""
     @Published public var countryCode: CountryCode = .india
     @Published public var otp: String = ""
-    @Published public var requestId: String = ""
     @Published public var isLoading: Bool = false
     @Published public var error: String? = nil
     @Published public var authState: AuthState = .loggedOut
@@ -34,7 +33,6 @@ public final class AuthViewModel: ObservableObject {
     @Published public var showTokenLoginSheet: Bool = false
     @Published public var tokenInput: String = ""
     @Published public var showAppCheckSheet: Bool = false
-    @Published public var showWebLoginSheet: Bool = false
     @Published public var appCheckTokenInput: String = ""
     @Published public var appCheckDebugTokenInput: String = ""
 
@@ -136,12 +134,11 @@ public final class AuthViewModel: ObservableObject {
 
         do {
             let nationalNumber = phone.filter { $0.isNumber }
-            let response = try await AtherAPI.shared.sendOTP(
+            _ = try await AtherAPI.shared.sendOTP(
                 phone: nationalNumber,
                 countryCode: countryCode.id
             )
 
-            self.requestId = response.requestId
             self.authState = .otpSent
             self.otp = ""
             startResendCountdown()
@@ -168,7 +165,6 @@ public final class AuthViewModel: ObservableObject {
             _ = try await AtherAPI.shared.verifyOTP(
                 phone: nationalNumber,
                 otp: cleanOtp,
-                requestId: requestId,
                 countryCode: countryCode.id
             )
 
@@ -259,7 +255,6 @@ public final class AuthViewModel: ObservableObject {
         try? KeychainHelper.shared.delete(forKey: Self.userPhoneKey)
 
         self.otp = ""
-        self.requestId = ""
         self.resendCountdown = 0
         self.error = nil
         self.authState = .loggedOut
