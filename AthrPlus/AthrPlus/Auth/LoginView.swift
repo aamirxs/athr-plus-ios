@@ -228,7 +228,7 @@ public struct LoginView: View {
                             .foregroundColor(.secondary)
                             .padding(.horizontal, 32)
 
-                        Text("Athr+ v1.0.8 (Build 9)")
+                        Text("Athr+ v1.0.9 (Build 10)")
                             .font(.caption2)
                             .foregroundColor(.secondary.opacity(0.5))
                             .padding(.top, 4)
