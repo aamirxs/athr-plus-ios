@@ -28,6 +28,10 @@ public final class AuthViewModel: ObservableObject {
     @Published public var otp: String = ""
     @Published public var isLoading: Bool = false
     @Published public var error: String? = nil
+    /// Set when Ather's backend accepts the entered code (which consumes the OTP
+    /// session server-side). While present, the OTP screen shows a verified state
+    /// and offers token sign-in instead of re-submitting the single-use code.
+    @Published public var verificationNotice: String? = nil
     @Published public var authState: AuthState = .loggedOut
     @Published public var resendCountdown: Int = 30
     @Published public var showTokenLoginSheet: Bool = false
@@ -38,6 +42,11 @@ public final class AuthViewModel: ObservableObject {
 
     // Internal task for countdown management
     private var countdownTask: Task<Void, Never>?
+
+    /// Last code Ather accepted, so repeated Verify taps don't re-use the
+    /// single-use OTP session (the server then rejects with "cannot verify otp…").
+    private var lastVerifiedCode: String?
+    private var lastVerifiedMessage: String?
 
     public init() {
         checkExistingAuth()
@@ -124,6 +133,7 @@ public final class AuthViewModel: ObservableObject {
 
     /// Validates the entered phone number and sends OTP request to Ather API.
     public func sendOTP() async {
+        guard !isLoading else { return }
         guard isPhoneValid else {
             self.error = "Please enter a valid \(countryCode.expectedPhoneLength)-digit phone number."
             return
@@ -141,6 +151,9 @@ public final class AuthViewModel: ObservableObject {
 
             self.authState = .otpSent
             self.otp = ""
+            self.lastVerifiedCode = nil
+            self.lastVerifiedMessage = nil
+            self.verificationNotice = nil
             startResendCountdown()
         } catch {
             self.error = error.localizedDescription
@@ -150,15 +163,29 @@ public final class AuthViewModel: ObservableObject {
     }
 
     /// Verifies the OTP, saves JWT tokens to Keychain, and updates authState to .loggedIn.
+    ///
+    /// Verified-code idempotency: Ather consumes the OTP session on the first
+    /// successful check, so re-submitting the same code (e.g. tapping Verify again
+    /// after auto-verify already ran) skips the network call and keeps the verified
+    /// state instead of failing with "cannot verify otp without generating otp first".
     public func verifyOTP() async {
+        guard !isLoading else { return }
+
         let cleanOtp = otp.filter { $0.isNumber }
         guard cleanOtp.count == Constants.Defaults.otpLength else {
             self.error = "Please enter the complete \(Constants.Defaults.otpLength)-digit verification code."
             return
         }
 
+        if cleanOtp == lastVerifiedCode {
+            self.error = nil
+            self.verificationNotice = lastVerifiedMessage
+            return
+        }
+
         self.isLoading = true
         self.error = nil
+        self.verificationNotice = nil
 
         do {
             let nationalNumber = phone.filter { $0.isNumber }
@@ -174,6 +201,16 @@ public final class AuthViewModel: ObservableObject {
             self.authState = .loggedIn
             self.otp = ""
             self.error = nil
+        } catch let apiError as APIError {
+            if case .otpVerifiedNoSession(let message) = apiError {
+                // The code was accepted; the session step needs the Ather token.
+                self.lastVerifiedCode = cleanOtp
+                self.lastVerifiedMessage = message
+                self.verificationNotice = message
+                self.error = nil
+            } else {
+                self.error = apiError.localizedDescription
+            }
         } catch {
             self.error = error.localizedDescription
         }
@@ -257,6 +294,9 @@ public final class AuthViewModel: ObservableObject {
         self.otp = ""
         self.resendCountdown = 0
         self.error = nil
+        self.verificationNotice = nil
+        self.lastVerifiedCode = nil
+        self.lastVerifiedMessage = nil
         self.authState = .loggedOut
     }
 

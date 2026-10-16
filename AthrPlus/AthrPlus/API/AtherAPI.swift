@@ -177,6 +177,12 @@ public actor AtherAPI {
             ?? (json["error"] as? String)
             ?? String(data: data, encoding: .utf8)
             ?? "HTTP \(status)"
+        // Aither's wording for "no active OTP session" (expired, consumed by an
+        // earlier successful verify, or attempts exhausted) — surface it as
+        // actionable guidance instead of the raw server text.
+        if message.localizedCaseInsensitiveContains("without generating otp") {
+            return .otpSessionExpired
+        }
         return .serverError(status, message)
     }
 
@@ -285,7 +291,7 @@ public actor AtherAPI {
 
         // Code verified, but Ather does not issue a session token on this route:
         // existing accounts must sign in through the App Check-gated 9a12 route.
-        throw APIError.otpVerifiedNoSession("OTP verified successfully. Ather requires Firebase App Check to sign an existing account into third-party apps, which this build cannot generate. Use 'Sign in with Ather Token' to connect, or configure an App Check token and try again.")
+        throw APIError.otpVerifiedNoSession("Code verified. Ather only issues account sessions to its official app (Firebase App Check), so tap 'Sign in with Ather Token' below to finish connecting your account.")
     }
 
     /// Explicitly refreshes auth tokens and updates Keychain.

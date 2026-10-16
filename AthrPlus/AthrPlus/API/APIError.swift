@@ -11,6 +11,9 @@ public enum APIError: LocalizedError {
     /// The OTP was verified but no account session could be created (Ather gates
     /// existing-account sign-in behind Firebase App Check). Carries a user-facing message.
     case otpVerifiedNoSession(String)
+    /// The OTP session for this number no longer exists server-side (expired,
+    /// already used, or too many failed attempts). The user should request a fresh code.
+    case otpSessionExpired
 
     public var errorDescription: String? {
         switch self {
@@ -26,6 +29,8 @@ public enum APIError: LocalizedError {
             return "Failed to process data from server: \(error.localizedDescription)"
         case .otpVerifiedNoSession(let message):
             return message
+        case .otpSessionExpired:
+            return "This code has expired or was already used. Tap 'Resend OTP' to get a fresh code."
         case .serverError(let code, let message):
             if code == 459 || message?.contains("maximum limit") == true {
                 return "Too many OTP requests. Ather has temporarily rate-limited attempts. Please wait 10-15 minutes before trying again."

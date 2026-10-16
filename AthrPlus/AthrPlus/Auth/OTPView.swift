@@ -137,6 +137,23 @@ public struct OTPView: View {
                             .padding(.horizontal, 8)
                             .transition(.opacity)
                         }
+
+                        // Verified notice: Ather accepted the code (the OTP session
+                        // is consumed); completing the login needs the Ather token.
+                        if let notice = viewModel.verificationNotice {
+                            HStack(alignment: .top, spacing: 8) {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .foregroundColor(brandGreen)
+                                    .font(.subheadline)
+                                Text(notice)
+                                    .font(.caption)
+                                    .foregroundColor(.primary)
+                                    .multilineTextAlignment(.leading)
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.horizontal, 8)
+                            .transition(.opacity)
+                        }
                     }
                     .padding(20)
                     .background(Color(.secondarySystemGroupedBackground))
@@ -167,6 +184,26 @@ public struct OTPView: View {
                     }
                     .disabled(viewModel.otp.count < otpLength || viewModel.isLoading)
                     .padding(.horizontal, 20)
+
+                    // Once the code is verified, offer the token sign-in right here.
+                    if viewModel.verificationNotice != nil {
+                        Button {
+                            viewModel.showTokenLoginSheet = true
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "key.fill")
+                                    .font(.subheadline.bold())
+                                Text("Sign in with Ather Token")
+                                    .font(.headline)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(brandGreen.opacity(0.14))
+                            .foregroundColor(brandGreen)
+                            .cornerRadius(14)
+                        }
+                        .padding(.horizontal, 20)
+                    }
 
                     // Resend Timer Row
                     VStack(spacing: 8) {
@@ -225,6 +262,9 @@ public struct OTPView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
+        .sheet(isPresented: $viewModel.showTokenLoginSheet) {
+            TokenLoginSheet(viewModel: viewModel)
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {
