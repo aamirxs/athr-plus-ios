@@ -152,8 +152,8 @@ public final class AuthViewModel: ObservableObject {
     /// Verifies the OTP, saves JWT tokens to Keychain, and updates authState to .loggedIn.
     public func verifyOTP() async {
         let cleanOtp = otp.filter { $0.isNumber }
-        guard cleanOtp.count == 6 else {
-            self.error = "Please enter the complete 6-digit verification code."
+        guard cleanOtp.count == Constants.Defaults.otpLength else {
+            self.error = "Please enter the complete \(Constants.Defaults.otpLength)-digit verification code."
             return
         }
 

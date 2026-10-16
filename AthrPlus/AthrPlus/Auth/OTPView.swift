@@ -2,12 +2,12 @@
 //  OTPView.swift
 //  AthrPlus
 //
-//  6-digit OTP verification screen with SMS autofill, custom digit boxes, and resend timer.
+//  5-digit OTP verification screen with SMS autofill, custom digit boxes, and resend timer.
 //
 
 import SwiftUI
 
-/// 6-digit OTP entry and verification screen for Athr+.
+/// 5-digit OTP entry and verification screen for Athr+.
 public struct OTPView: View {
     @ObservedObject public var viewModel: AuthViewModel
     @Environment(\.dismiss) private var dismiss
@@ -20,9 +20,12 @@ public struct OTPView: View {
         self.viewModel = viewModel
     }
 
+    /// Digits in Ather's live SMS OTP (the backend sends 5).
+    private var otpLength: Int { Constants.Defaults.otpLength }
+
     private var otpDigits: [String] {
         let clean = viewModel.otp.filter { $0.isNumber }
-        return (0..<6).map { index in
+        return (0..<otpLength).map { index in
             if index < clean.count {
                 let stringIndex = clean.index(clean.startIndex, offsetBy: index)
                 return String(clean[stringIndex])
@@ -58,7 +61,7 @@ public struct OTPView: View {
                             .foregroundColor(.secondary)
                     }
 
-                    // 6-Digit OTP Boxes Card
+                    // OTP Digit Boxes Card
                     VStack(spacing: 20) {
                         ZStack {
                             // Hidden textfield capturing keyboard & SMS autofill
@@ -66,14 +69,14 @@ public struct OTPView: View {
                                 get: { viewModel.otp },
                                 set: { newValue in
                                     let numbersOnly = newValue.filter { $0.isNumber }
-                                    if numbersOnly.count <= 6 {
+                                    if numbersOnly.count <= otpLength {
                                         viewModel.otp = numbersOnly
                                     } else {
-                                        viewModel.otp = String(numbersOnly.prefix(6))
+                                        viewModel.otp = String(numbersOnly.prefix(otpLength))
                                     }
 
-                                    // Auto-verify when 6th digit is reached
-                                    if viewModel.otp.count == 6 {
+                                    // Auto-verify when the last digit is reached
+                                    if viewModel.otp.count == otpLength {
                                         isFieldFocused = false
                                         Task {
                                             await viewModel.verifyOTP()
@@ -89,12 +92,12 @@ public struct OTPView: View {
                             .opacity(0.01)
                             .frame(maxWidth: .infinity, maxHeight: 60)
 
-                            // Visual 6-digit display boxes
+                            // Visual digit display boxes
                             HStack(spacing: 10) {
-                                ForEach(0..<6, id: \.self) { index in
+                                ForEach(0..<otpLength, id: \.self) { index in
                                     let digit = otpDigits[index]
                                     let isCurrent = isFieldFocused && (
-                                        (viewModel.otp.count == index) || (index == 5 && viewModel.otp.count == 6)
+                                        (viewModel.otp.count == index) || (index == otpLength - 1 && viewModel.otp.count == otpLength)
                                     )
 
                                     ZStack {
@@ -157,12 +160,12 @@ public struct OTPView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(viewModel.otp.count == 6 && !viewModel.isLoading ? brandGreen : brandGreen.opacity(0.4))
+                        .background(viewModel.otp.count == otpLength && !viewModel.isLoading ? brandGreen : brandGreen.opacity(0.4))
                         .foregroundColor(.white)
                         .cornerRadius(14)
-                        .shadow(color: viewModel.otp.count == 6 ? brandGreen.opacity(0.3) : .clear, radius: 8, x: 0, y: 4)
+                        .shadow(color: viewModel.otp.count == otpLength ? brandGreen.opacity(0.3) : .clear, radius: 8, x: 0, y: 4)
                     }
-                    .disabled(viewModel.otp.count < 6 || viewModel.isLoading)
+                    .disabled(viewModel.otp.count < otpLength || viewModel.isLoading)
                     .padding(.horizontal, 20)
 
                     // Resend Timer Row

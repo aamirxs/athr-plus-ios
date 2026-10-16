@@ -61,6 +61,8 @@ public enum Constants {
         public static let countryCode = "+91"
         public static let countryId = "IN"
         public static let chargeTarget = 80
+        /// Ather's live backend sends 5-digit SMS OTP codes (confirmed from real deliveries).
+        public static let otpLength = 5
     }
 
     // Top-level aliases for direct access
